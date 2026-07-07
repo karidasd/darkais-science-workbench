@@ -5,6 +5,5 @@ pandas>=2.2.0
 plotly>=5.22.0
 biopython>=1.81
 py3Dmol>=2.1.0
-stmol>=0.0.9
 pypdf>=4.0.0
 scikit-learn>=1.4.0

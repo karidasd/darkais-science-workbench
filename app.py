@@ -1,6 +1,6 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import os
-from stmol import showmol
 import py3Dmol
 from src.orchestrator.coordinator import process_research_task
 from src.compute.job_dispatcher import dispatch_folding_job
@@ -122,6 +122,10 @@ with tabs[1]:
             else:
                 view.setStyle({style: {'color': color}})
             view.zoomTo()
-            showmol(view, height=500, width=800)
+            
+            # Render using native Streamlit HTML component instead of stmol
+            html_content = view._make_html()
+            components.html(html_content, height=500, width=800)
+            
         except Exception as e:
             st.error(f"Could not render molecule: {str(e)}")
