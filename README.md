@@ -2,7 +2,7 @@
 
 ![DarkAIs Science Workbench UI](screenshot.png)
 
-**[🔥 Live Demo (Streamlit Cloud)](https://darkais-science-workbench.streamlit.app/)**
+**[🔥 Live Demo (Streamlit Cloud)](https://darkais-science-workbench-llfwbx2atgf9aacvnv4xze.streamlit.app/)**
 
 An open-source, Multi-Agent IDE for Biological Research. This architecture is directly inspired by the official **[Anthropic Claude Science AI Workbench](https://www.anthropic.com/news/claude-science-ai-workbench)** announcement.
 
