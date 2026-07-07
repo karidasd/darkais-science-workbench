@@ -27,7 +27,8 @@ if "chat_history" not in st.session_state:
 # Sidebar for API keys and Compute settings
 with st.sidebar:
     st.header("⚙️ Configuration (BYOK)")
-    api_key = st.text_input("OpenAI API Key", type="password")
+    api_key = st.text_input("Groq API Key (Free)", type="password", help="Get a free key at https://console.groq.com/keys")
+    st.markdown("[Get Free Groq Key](https://console.groq.com/keys)")
     
     st.header("🖥️ Compute Backend")
     compute_node = st.selectbox("Execution Environment", ["Local Sandbox", "HPC Cluster (SSH)", "Modal Serverless GPU"])

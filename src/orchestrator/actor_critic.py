@@ -7,7 +7,7 @@ def run_actor_critic(api_key: str, task: str, context: str) -> dict:
     1. Actor Agent generates the initial scientific response.
     2. Critic (Reviewer) Agent evaluates it for accuracy, hallucinated citations, and logic.
     """
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
     
     # ACTOR AGENT
     actor_prompt = f"""You are a specialized Scientific Actor Agent.
@@ -19,7 +19,7 @@ Do not hallucinate data or citations.
 """
     try:
         actor_res = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="llama3-70b-8192",
             messages=[{"role": "system", "content": "You are a Scientific Generator."},
                       {"role": "user", "content": actor_prompt}],
             temperature=0.3
@@ -43,7 +43,7 @@ Output your response as JSON with two keys:
 - "feedback": string (your critique or corrections)
 """
         critic_res = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="llama3-70b-8192",
             messages=[{"role": "system", "content": "You are a Scientific Critic. Output only raw JSON."},
                       {"role": "user", "content": critic_prompt}],
             response_format={ "type": "json_object" },

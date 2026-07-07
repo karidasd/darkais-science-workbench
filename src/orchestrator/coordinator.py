@@ -10,7 +10,7 @@ def process_research_task(api_key: str, task: str, memory: list):
     The Generalist Coordinator Agent with Tool Calling.
     Uses OpenAI function calling to intelligently invoke tools.
     """
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
     logs = []
     
     tools = [
@@ -52,7 +52,7 @@ def process_research_task(api_key: str, task: str, memory: list):
     logs.append("⚙️ Coordinator analyzing task and deciding tools...")
     
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama3-70b-8192",
         messages=messages,
         tools=tools,
         tool_choice="auto"
