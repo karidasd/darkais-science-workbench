@@ -2,6 +2,8 @@
 
 ![DarkAIs Science Workbench UI](screenshot.png)
 
+**[🔥 Live Demo (Streamlit Cloud)](https://darkais-science-workbench.streamlit.app/)**
+
 An open-source, Multi-Agent IDE for Biological Research. This architecture is directly inspired by the official **[Anthropic Claude Science AI Workbench](https://www.anthropic.com/news/claude-science-ai-workbench)** announcement.
 
 This repository demonstrates advanced Agentic AI architectures including **Actor-Critic Validation**, **Tool Calling (MCPs)**, and **Compute Delegation**.
