@@ -1,82 +1,87 @@
 import os
-import fitz  # PyMuPDF
-import chromadb
-from sentence_transformers import SentenceTransformer
+from pypdf import PdfReader
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-# Initialize ChromaDB client in memory for this session
-_chroma_client = chromadb.Client()
-
-# Create or get the collection
-_collection = _chroma_client.get_or_create_collection(name="evidence_state")
-
-# Initialize embedding model (runs locally)
-# Using a lightweight model to ensure fast performance and no API costs
-_embedder = SentenceTransformer("all-MiniLM-L6-v2")
+# In-memory "Vector DB" using pure python lists
+_documents = []
+_metadatas = []
+_vectorizer = None
+_tfidf_matrix = None
 
 def ingest_pdf(file_path: str, document_name: str) -> str:
     """
-    Reads a PDF, chunks it into paragraphs, embeds them, and stores in ChromaDB.
+    Reads a PDF using pypdf, chunks it, and stores it in memory.
+    Uses TF-IDF for lightweight, memory-efficient text vectorization.
     """
+    global _vectorizer, _tfidf_matrix, _documents, _metadatas
+    
     try:
-        doc = fitz.open(file_path)
-        chunks = []
-        metadatas = []
-        ids = []
+        reader = PdfReader(file_path)
+        chunks_added = 0
         
-        chunk_idx = 0
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            text = page.get_text("text")
-            
+        for page_num, page in enumerate(reader.pages):
+            text = page.extract_text()
+            if not text:
+                continue
+                
             # Simple chunking by double newlines (paragraphs)
             paragraphs = [p.strip() for p in text.split('\\n\\n') if len(p.strip()) > 50]
             
-            for para in paragraphs:
-                chunks.append(para)
-                metadatas.append({"source": document_name, "page": page_num + 1})
-                ids.append(f"{document_name}_p{page_num}_{chunk_idx}")
-                chunk_idx += 1
+            # Fallback if no double newlines
+            if not paragraphs:
+                paragraphs = [text[i:i+500] for i in range(0, len(text), 500)]
                 
-        if not chunks:
+            for para in paragraphs:
+                _documents.append(para)
+                _metadatas.append({"source": document_name, "page": page_num + 1})
+                chunks_added += 1
+                
+        if chunks_added == 0:
             return f"No readable text found in {document_name}."
             
-        # Generate embeddings
-        embeddings = _embedder.encode(chunks).tolist()
+        # Re-fit the TF-IDF vectorizer on all documents
+        _vectorizer = TfidfVectorizer(stop_words='english')
+        _tfidf_matrix = _vectorizer.fit_transform(_documents)
         
-        # Store in ChromaDB
-        _collection.add(
-            embeddings=embeddings,
-            documents=chunks,
-            metadatas=metadatas,
-            ids=ids
-        )
-        
-        return f"Successfully ingested {len(chunks)} chunks from {document_name}."
+        return f"Successfully ingested {chunks_added} chunks from {document_name}."
     except Exception as e:
         return f"Error ingesting PDF: {str(e)}"
 
 
 def query_evidence_db(query: str, n_results: int = 3) -> str:
     """
-    Searches the ChromaDB for relevant context based on the query.
+    Searches the in-memory chunks using Cosine Similarity on TF-IDF vectors.
     """
-    if _collection.count() == 0:
+    global _vectorizer, _tfidf_matrix, _documents, _metadatas
+    
+    if not _documents or _vectorizer is None:
         return "Evidence Database is currently empty. Please upload a PDF first."
         
     try:
-        query_embedding = _embedder.encode([query]).tolist()
+        # Vectorize the query
+        query_vec = _vectorizer.transform([query])
         
-        results = _collection.query(
-            query_embeddings=query_embedding,
-            n_results=n_results
-        )
+        # Compute cosine similarity
+        similarities = cosine_similarity(query_vec, _tfidf_matrix).flatten()
         
-        if not results['documents'][0]:
+        # Get top N indices
+        top_indices = np.argsort(similarities)[-n_results:][::-1]
+        
+        # If the highest similarity is 0, no match
+        if similarities[top_indices[0]] == 0:
             return "No relevant evidence found in the database."
             
         context_parts = []
-        for doc, meta in zip(results['documents'][0], results['metadatas'][0]):
-            context_parts.append(f"[Source: {meta['source']}, Page: {meta['page']}]\\n{doc}")
+        for idx in top_indices:
+            if similarities[idx] > 0.05:  # Arbitrary threshold
+                meta = _metadatas[idx]
+                doc = _documents[idx]
+                context_parts.append(f"[Source: {meta['source']}, Page: {meta['page']}]\\n{doc}")
+                
+        if not context_parts:
+            return "No relevant evidence found."
             
         return "\\n\\n---\\n\\n".join(context_parts)
     except Exception as e:
