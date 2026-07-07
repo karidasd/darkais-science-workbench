@@ -1,33 +1,43 @@
-import requests
+from Bio import Entrez
+import json
 
-def search_pubmed(query: str, max_results: int = 5) -> str:
+def search_pubmed(query: str, max_results: int = 5, email: str = "your.email@example.com") -> str:
     """
-    Mock implementation of a PubMed literature search tool.
-    In a real scenario, this would use the NCBI E-utilities API.
+    Fetches actual literature from PubMed using Biopython's Entrez module.
     """
-    # For demonstration purposes, returning mock data based on the query.
-    mock_db = {
-        "yeast": [
-            "[PMID: 3456781] Genomic analysis of Saccharomyces cerevisiae stress response.",
-            "[PMID: 3910293] Nitrogen metabolism during anaerobic fermentation.",
-            "[PMID: 4102938] Engineered yeast strains for elevated thiol production."
-        ],
-        "crispr": [
-            "[PMID: 3102938] Off-target effects in CRISPR-Cas9 genome editing.",
-            "[PMID: 3829102] High-throughput CRISPR screening in mammalian cells."
-        ]
-    }
+    Entrez.email = email
     
-    query_lower = query.lower()
-    results = []
-    for key, articles in mock_db.items():
-        if key in query_lower:
-            results.extend(articles)
-            
-    if not results:
-        return f"No literature found for query: '{query}'."
+    try:
+        # Search PubMed
+        handle = Entrez.esearch(db="pubmed", term=query, retmax=max_results)
+        record = Entrez.read(handle)
+        handle.close()
         
-    return "\n".join(results[:max_results])
+        id_list = record["IdList"]
+        if not id_list:
+            return f"No literature found for query: '{query}'."
+            
+        # Fetch details for the IDs
+        handle = Entrez.efetch(db="pubmed", id=id_list, retmode="xml")
+        papers = Entrez.read(handle)
+        handle.close()
+        
+        results = []
+        for paper in papers['PubmedArticle']:
+            pmid = paper['MedlineCitation']['PMID']
+            article = paper['MedlineCitation']['Article']
+            title = article.get('ArticleTitle', 'No title available')
+            
+            abstract_text = "No abstract available."
+            if 'Abstract' in article and 'AbstractText' in article['Abstract']:
+                abstract_text = " ".join([str(text) for text in article['Abstract']['AbstractText']])
+            
+            results.append(f"[PMID: {pmid}] {title}\\nAbstract: {abstract_text}")
+            
+        return "\\n\\n".join(results)
+        
+    except Exception as e:
+        return f"Error fetching from PubMed: {str(e)}"
 
 def parse_fasta(sequence_data: str) -> dict:
     """
