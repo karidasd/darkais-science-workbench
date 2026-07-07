@@ -20,6 +20,9 @@ Biological computations (like AlphaFold protein folding or genomic alignments) r
 ### 4. BYOK (Bring Your Own Key) Security
 Designed for enterprise and academic deployment, the frontend does not hardcode API keys. Users inject their own OpenAI or DeepSeek API keys per session, ensuring data privacy and cost-control.
 
+### 5. 3D Molecule Visualization (`app.py`)
+Integrated native support for rendering 3D protein structures (via PDB codes) using `py3Dmol`, allowing researchers to visually inspect computational biology results directly in the IDE.
+
 ---
 
 ## 🚀 Quick Start
