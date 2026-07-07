@@ -1,6 +1,8 @@
 # 🧬 DarkAIs Science Workbench
 
-An open-source, Multi-Agent IDE for Biological Research, inspired by Anthropic's Claude Science. 
+![DarkAIs Science Workbench UI](screenshot.png)
+
+An open-source, Multi-Agent IDE for Biological Research. This architecture is directly inspired by the official **[Anthropic Claude Science AI Workbench](https://www.anthropic.com/news/claude-science-ai-workbench)** announcement.
 
 This repository demonstrates advanced Agentic AI architectures including **Actor-Critic Validation**, **Tool Calling (MCPs)**, and **Compute Delegation**.
 
