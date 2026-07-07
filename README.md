@@ -23,6 +23,9 @@ Designed for enterprise and academic deployment, the frontend does not hardcode 
 ### 5. 3D Molecule Visualization (`app.py`)
 Integrated native support for rendering 3D protein structures (via PDB codes) using `py3Dmol`, allowing researchers to visually inspect computational biology results directly in the IDE.
 
+### 6. Evidence State Database (Local RAG)
+Implemented a local Vector Database using **ChromaDB**. Users can upload PDF papers directly into the IDE. The system chunks the documents, generates embeddings using `sentence-transformers`, and allows the Agent to perform Semantic Search (RAG) to cite specific evidence from the uploaded papers.
+
 ---
 
 ## 🚀 Quick Start
@@ -46,7 +49,7 @@ streamlit run app.py
 ## 🛠 Tech Stack
 - **Frontend**: Streamlit
 - **AI Backend**: OpenAI Python SDK with **Groq API** (running **LLaMA 3 70B**)
-- **Data Parsing**: Biopython, Pandas, py3Dmol
+- **Data Parsing & DB**: Biopython, Pandas, py3Dmol, ChromaDB, PyMuPDF, Sentence-Transformers
 
 ---
 *Developed by DarkAIs. Redefining scientific workflows through AI.*

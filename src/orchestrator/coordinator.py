@@ -3,6 +3,7 @@ import time
 from openai import OpenAI
 from src.skills.bio_tools import search_pubmed
 from src.skills.code_executor import execute_python_code
+from src.skills.rag_db import query_evidence_db
 from src.orchestrator.actor_critic import run_actor_critic
 
 def process_research_task(api_key: str, task: str, memory: list):
@@ -42,10 +43,24 @@ def process_research_task(api_key: str, task: str, memory: list):
                     "required": ["code"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "query_evidence_db",
+                "description": "Searches the local Evidence Vector Database (uploaded PDFs) for specific information.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "The search query (e.g. 'what does the author say about protein folding?')."}
+                    },
+                    "required": ["query"]
+                }
+            }
         }
     ]
 
-    messages = [{"role": "system", "content": "You are the Coordinator Agent. Use tools to gather data before summarizing. You must rely on the Critic to finalize."}]
+    messages = [{"role": "system", "content": "You are the Coordinator Agent. Use tools to gather data before summarizing. You can query PubMed, execute Python, or search the Evidence DB if the user uploaded a PDF. You must rely on the Critic to finalize."}]
     messages.extend(memory)
     messages.append({"role": "user", "content": task})
     
@@ -75,6 +90,13 @@ def process_research_task(api_key: str, task: str, memory: list):
                 result = execute_python_code(args['code'])
                 context += "CODE EXECUTION RESULT:\\n" + result + "\\n"
                 logs.append(f"🖥️ Code execution returned output length: {len(result)}")
+                
+            elif tool_call.function.name == "query_evidence_db":
+                args = json.loads(tool_call.function.arguments)
+                logs.append(f"🗄️ Querying Evidence Vector DB for: {args['query']}")
+                result = query_evidence_db(args['query'])
+                context += "EVIDENCE DATABASE RESULTS:\\n" + result + "\\n"
+                logs.append(f"🧠 Retrieved evidence from local database.")
     else:
         logs.append("⚠️ No tools required. Proceeding with existing knowledge.")
         context = "Use internal knowledge."

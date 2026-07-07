@@ -1,8 +1,10 @@
 import streamlit as st
+import os
 from stmol import showmol
 import py3Dmol
 from src.orchestrator.coordinator import process_research_task
 from src.compute.job_dispatcher import dispatch_folding_job
+from src.skills.rag_db import ingest_pdf
 
 st.set_page_config(page_title="DarkAIs Science Workbench", layout="wide", page_icon="🧬")
 
@@ -38,8 +40,28 @@ with st.sidebar:
     st.markdown("🟢 Generalist Coordinator")
     st.markdown("🟢 PubMed / Literature Specialist")
     st.markdown("🟢 Python Code Executor")
+    st.markdown("🟢 Evidence DB (RAG) Specialist")
     st.markdown("🟢 Critic / Reviewer")
     
+    st.markdown("---")
+    st.header("🗄️ Evidence State (RAG)")
+    uploaded_file = st.file_uploader("Upload PDF Paper", type=["pdf"])
+    if uploaded_file is not None:
+        if st.button("📥 Ingest into Vector DB"):
+            with st.spinner("Chunking & Embedding..."):
+                # Save temp file
+                temp_path = f"temp_{uploaded_file.name}"
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                
+                # Ingest
+                result_msg = ingest_pdf(temp_path, uploaded_file.name)
+                st.success(result_msg)
+                
+                # Clean up
+                os.remove(temp_path)
+    
+    st.markdown("---")
     if st.button("🗑️ Clear Session"):
         st.session_state.chat_history = []
         st.rerun()
