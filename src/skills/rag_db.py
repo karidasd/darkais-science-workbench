@@ -4,19 +4,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-# In-memory "Vector DB" using pure python lists
-_documents = []
-_metadatas = []
-_vectorizer = None
-_tfidf_matrix = None
+# The state is now passed dynamically from the Streamlit session state
+# to prevent cross-user data leaks.
 
-def ingest_pdf(file_path: str, document_name: str) -> str:
+def ingest_pdf(file_path: str, document_name: str, db_state: dict) -> str:
     """
     Reads a PDF using pypdf, chunks it, and stores it in memory.
     Uses TF-IDF for lightweight, memory-efficient text vectorization.
+    db_state is a dict provided by the caller to store user-specific data.
     """
-    global _vectorizer, _tfidf_matrix, _documents, _metadatas
-    
     try:
         reader = PdfReader(file_path)
         chunks_added = 0
@@ -34,37 +30,36 @@ def ingest_pdf(file_path: str, document_name: str) -> str:
                 paragraphs = [text[i:i+500] for i in range(0, len(text), 500)]
                 
             for para in paragraphs:
-                _documents.append(para)
-                _metadatas.append({"source": document_name, "page": page_num + 1})
+                db_state['documents'].append(para)
+                db_state['metadatas'].append({"source": document_name, "page": page_num + 1})
                 chunks_added += 1
                 
         if chunks_added == 0:
             return f"No readable text found in {document_name}."
             
         # Re-fit the TF-IDF vectorizer on all documents
-        _vectorizer = TfidfVectorizer(stop_words='english')
-        _tfidf_matrix = _vectorizer.fit_transform(_documents)
+        db_state['vectorizer'] = TfidfVectorizer(stop_words='english')
+        db_state['tfidf_matrix'] = db_state['vectorizer'].fit_transform(db_state['documents'])
         
         return f"Successfully ingested {chunks_added} chunks from {document_name}."
     except Exception as e:
         return f"Error ingesting PDF: {str(e)}"
 
 
-def query_evidence_db(query: str, n_results: int = 3) -> str:
+def query_evidence_db(query: str, db_state: dict, n_results: int = 3) -> str:
     """
     Searches the in-memory chunks using Cosine Similarity on TF-IDF vectors.
     """
-    global _vectorizer, _tfidf_matrix, _documents, _metadatas
     
-    if not _documents or _vectorizer is None:
+    if not db_state['documents'] or db_state['vectorizer'] is None:
         return "Evidence Database is currently empty. Please upload a PDF first."
         
     try:
         # Vectorize the query
-        query_vec = _vectorizer.transform([query])
+        query_vec = db_state['vectorizer'].transform([query])
         
         # Compute cosine similarity
-        similarities = cosine_similarity(query_vec, _tfidf_matrix).flatten()
+        similarities = cosine_similarity(query_vec, db_state['tfidf_matrix']).flatten()
         
         # Get top N indices
         top_indices = np.argsort(similarities)[-n_results:][::-1]
@@ -76,8 +71,8 @@ def query_evidence_db(query: str, n_results: int = 3) -> str:
         context_parts = []
         for idx in top_indices:
             if similarities[idx] > 0.05:  # Arbitrary threshold
-                meta = _metadatas[idx]
-                doc = _documents[idx]
+                meta = db_state['metadatas'][idx]
+                doc = db_state['documents'][idx]
                 context_parts.append(f"[Source: {meta['source']}, Page: {meta['page']}]\\n{doc}")
                 
         if not context_parts:

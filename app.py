@@ -25,6 +25,8 @@ st.markdown("*An Enterprise-Grade, Multi-Agent IDE for Biological Research.*")
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "db_state" not in st.session_state:
+    st.session_state.db_state = {'documents': [], 'metadatas': [], 'vectorizer': None, 'tfidf_matrix': None}
 
 # Sidebar for API keys and Compute settings
 with st.sidebar:
@@ -51,19 +53,22 @@ with st.sidebar:
             with st.spinner("Chunking & Embedding..."):
                 # Save temp file
                 temp_path = f"temp_{uploaded_file.name}"
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                
-                # Ingest
-                result_msg = ingest_pdf(temp_path, uploaded_file.name)
-                st.success(result_msg)
-                
-                # Clean up
-                os.remove(temp_path)
+                try:
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    # Ingest
+                    result_msg = ingest_pdf(temp_path, uploaded_file.name, st.session_state.db_state)
+                    st.success(result_msg)
+                finally:
+                    # Clean up safely
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
     
     st.markdown("---")
     if st.button("🗑️ Clear Session"):
         st.session_state.chat_history = []
+        st.session_state.db_state = {'documents': [], 'metadatas': [], 'vectorizer': None, 'tfidf_matrix': None}
         st.rerun()
 
 tabs = st.tabs(["📚 Research Agent Chat", "🖥️ 3D Protein Rendering (BioNeMo Mock)"])
@@ -86,7 +91,7 @@ with tabs[0]:
                     # Pass the conversation history to the agent (last 4 messages for context)
                     memory = [{"role": m["role"], "content": m["content"]} for m in st.session_state.chat_history[-4:-1]]
                     
-                    result = process_research_task(api_key, prompt, memory)
+                    result = process_research_task(api_key, prompt, memory, st.session_state.db_state)
                     
                     st.markdown("##### 📜 Execution Logs (Coordinator & Tools)")
                     log_html = "<br>".join(result["logs"])

@@ -50,7 +50,18 @@ Output your response as JSON with two keys:
             temperature=0.0
         )
         
-        review = json.loads(critic_res.choices[0].message.content)
+        raw_content = critic_res.choices[0].message.content
+        
+        # Clean up markdown backticks if the LLM hallucinated them despite JSON mode
+        if raw_content.startswith("```json"):
+            raw_content = raw_content[7:-3].strip()
+        elif raw_content.startswith("```"):
+            raw_content = raw_content[3:-3].strip()
+            
+        try:
+            review = json.loads(raw_content)
+        except json.JSONDecodeError:
+            review = {"approved": False, "feedback": "JSON parsing error from Critic."}
         
         return {
             "draft": draft,

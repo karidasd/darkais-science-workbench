@@ -6,7 +6,7 @@ from src.skills.code_executor import execute_python_code
 from src.skills.rag_db import query_evidence_db
 from src.orchestrator.actor_critic import run_actor_critic
 
-def process_research_task(api_key: str, task: str, memory: list):
+def process_research_task(api_key: str, task: str, memory: list, db_state: dict):
     """
     The Generalist Coordinator Agent with Tool Calling.
     Uses OpenAI function calling to intelligently invoke tools.
@@ -94,7 +94,7 @@ def process_research_task(api_key: str, task: str, memory: list):
             elif tool_call.function.name == "query_evidence_db":
                 args = json.loads(tool_call.function.arguments)
                 logs.append(f"🗄️ Querying Evidence Vector DB for: {args['query']}")
-                result = query_evidence_db(args['query'])
+                result = query_evidence_db(args['query'], db_state)
                 context += "EVIDENCE DATABASE RESULTS:\\n" + result + "\\n"
                 logs.append(f"🧠 Retrieved evidence from local database.")
     else:

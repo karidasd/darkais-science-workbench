@@ -12,7 +12,13 @@ def execute_python_code(code: str) -> str:
     output_buffer = io.StringIO()
     
     # Safe-ish environment with pandas available
+    safe_builtins = {
+        "print": print, "range": range, "len": len, "list": list, "dict": dict,
+        "str": str, "int": int, "float": float, "bool": bool,
+        "sum": sum, "min": min, "max": max, "abs": abs, "round": round
+    }
     env = {
+        "__builtins__": safe_builtins,
         "pd": pd,
         "print": print
     }
